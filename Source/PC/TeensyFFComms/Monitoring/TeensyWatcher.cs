@@ -13,6 +13,8 @@ namespace TeensyFFComms.Monitoring
 		private const uint HalfKayPid = 0x478;
 		private readonly string _vidStr = $"'%USB_VID[_]{Vid:X}%'";
 
+        private static TimeSpan PollDelay = TimeSpan.FromMilliseconds(1000);
+
         #region Properties and Events -----------------------------------------------
 
         public List<USBDevice> ConnectedDevices { get; private set; }
@@ -21,6 +23,11 @@ namespace TeensyFFComms.Monitoring
         #endregion
 
         #region Construction / Destruction ------------------------------------------
+        
+        public TeensyWatcher(long pollMillis) : this()
+        {
+            PollDelay = TimeSpan.FromMilliseconds(pollMillis);
+        }
 
         public TeensyWatcher()
         {
@@ -62,8 +69,8 @@ namespace TeensyFFComms.Monitoring
                 {
                     EventClassName = "__InstanceDeletionEvent",
                     Condition = "TargetInstance ISA 'Win32_PnPEntity'",
-                    WithinInterval = new TimeSpan(0, 0, 1), //Todo: make the interval settable
-                },
+                    WithinInterval = PollDelay
+                }
             };
             DeleteWatcher.EventArrived += PortsChanged;
             DeleteWatcher.Start();
@@ -74,8 +81,8 @@ namespace TeensyFFComms.Monitoring
                 {
                     EventClassName = "__InstanceCreationEvent",
                     Condition = "TargetInstance ISA 'Win32_PnPEntity'",
-                    WithinInterval = new TimeSpan(0, 0, 1), //Todo: make the interval settable
-                },
+                    WithinInterval = PollDelay
+                }
             };
             CreateWatcher.EventArrived += PortsChanged;
             CreateWatcher.Start();
@@ -113,7 +120,7 @@ namespace TeensyFFComms.Monitoring
 			}
 			else
 			{
-				var rd = ConnectedDevices.Find(d => d.Serialnumber == device.Serialnumber);
+				var rd = ConnectedDevices.Find(d => d.SerialNumber == device.SerialNumber);
 				ConnectedDevices.Remove(rd);
 				OnConnectionChanged(type, rd);
 			}
@@ -129,8 +136,14 @@ namespace TeensyFFComms.Monitoring
 
             if (deviceIdParts[0] != "USB") return null;
 
+            var deviceIdPart3Parts = deviceIdParts[2].Split('&');
+
+//            if (deviceIdParts[2].Contains('&')) return null; // 2nd interface, ignore
+
             var start = deviceIdParts[1].IndexOf("PID_", StringComparison.Ordinal) + 4;
             var pid = Convert.ToUInt32(deviceIdParts[1].Substring(start, 4), 16);
+
+            
 
             switch (pid)
 			{
@@ -143,20 +156,21 @@ namespace TeensyFFComms.Monitoring
 					{
 						Type = USBDeviceType.UsbSerial,
 						Port = port,
-						Serialnumber = serNum
+						SerialNumber = serNum
 					};
 				}
 
-				case HIDPid:
-				{
-					var serNum = Convert.ToUInt32(deviceIdParts[2]);
-					return new USBDevice
-					{
-						Type = USBDeviceType.HID,
-						Port = "",
-						Serialnumber = serNum
-					};
-				}
+                // todo: fix HID detection and interface separation
+//				case HIDPid:
+//				{
+//					var serNum = Convert.ToUInt32(deviceIdParts[2]);
+//					return new USBDevice
+//					{
+//						Type = USBDeviceType.HID,
+//						Port = "",
+//						SerialNumber = serNum
+//					};
+//				}
 
                 case HalfKayPid:
 				{
@@ -170,7 +184,7 @@ namespace TeensyFFComms.Monitoring
 					{
 						Type = USBDeviceType.HalfKay,
 						Port = "",
-						Serialnumber = serNum,
+						SerialNumber = serNum
 					};
 				}
 
@@ -195,6 +209,12 @@ namespace TeensyFFComms.Monitoring
     {
         public readonly TeensyWatcher.ChangeType ChangeType;
         public readonly USBDevice ChangedDevice;
+
+        public override string ToString()
+        {
+            var changeStr = ChangeType == TeensyWatcher.ChangeType.Add ? "Connected" : "Disconnected";
+            return $"Device {changeStr} - {ChangedDevice}";
+        }
 
         public ConnectionChangedEventArgs(TeensyWatcher.ChangeType type, USBDevice changedDevice)
         {

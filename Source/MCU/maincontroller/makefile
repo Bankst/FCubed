@@ -21,7 +21,7 @@ LIBS_SHARED_BASE := C:\Users\Banks\Documents\Arduino\libraries
 LIBS_SHARED      := 
 
 LIBS_LOCAL_BASE  := lib
-LIBS_LOCAL       := AceButton ADC Encoder Servo SPI SD TeensyThreads 
+LIBS_LOCAL       := AceButton ADC Encoder nanopb Servo SPI SdFat TeensyThreads 
 
 CORE_BASE        := C:\PROGRA~2\Arduino\hardware\teensy\avr\cores\teensy3
 GCC_BASE         := C:\PROGRA~2\Arduino\hardware\tools\arm
@@ -39,7 +39,7 @@ FLAGS_C     :=
 FLAGS_S     := -x assembler-with-cpp
 FLAGS_LD    := -Wl,--gc-sections,--relax,--defsym=__rtc_localtime=$(shell powershell [int](Get-Date -UFormat +%s)[0])
 
-LIBS        := -larm_cortexM4lf_math -lm
+LIBS        := -larm_cortexM4lf_math -lm -lstdc++_nano
 LD_SCRIPT   := mk66fx1m0.ld
 
 DEFINES     := -D__MK66FX1M0__ -DTEENSYDUINO=146 -DARDUINO=10807
@@ -120,8 +120,9 @@ LIB_OBJ         += $(LIB_S_SHARED:$(LIBS_SHARED_BASE)/%.S=$(LIB_BIN)/%.o)  $(LIB
 
 # Includes -------------------------------------------------------------
 INCLUDE        := -I./$(USR_SRC) -I$(CORE_SRC) 
-INCLUDE        += $(foreach d, $(LIB_DIRS_SHARED), -I$d)
 INCLUDE        += $(foreach d, $(LIB_DIRS_LOCAL), -I$d)
+INCLUDE        += $(foreach d, $(LIB_DIRS_SHARED), -I$d)
+
 
 # Generate directories --------------------------------------------------------
 DIRECTORIES :=  $(sort $(dir $(CORE_OBJ) $(USR_OBJ) $(LIB_OBJ)))
@@ -141,8 +142,11 @@ all:  $(TARGET_LST) $(TARGET_HEX)
 
 rebuild: cleanUser all
 
-clean:   cleanUser cleanCore cleanLib
+clean:   cleanUser cleanLib # cleanCore
 	@echo cleaning done
+
+cleanAll: cleanUser cleanLib cleanCore
+	@echo cleaning all done
 
 upload: all
 	@$(UPL_PJRC)

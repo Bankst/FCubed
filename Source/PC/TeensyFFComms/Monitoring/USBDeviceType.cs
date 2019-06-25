@@ -4,7 +4,7 @@
 	{
 		UsbSerial,
 		HalfKay,
-		HID,
+		HID
 		//...
 	}
 }

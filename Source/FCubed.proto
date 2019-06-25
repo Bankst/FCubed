@@ -1,0 +1,50 @@
+syntax = "proto2";
+
+import "nanopb.proto";
+
+enum F3Opcode {
+	F3_InitReq = 0;
+	F3_InitAck = 1;
+	F3_HeartbeatReq = 2;
+	F3_HeartbeatAck = 3;
+	F3_SysInfoReq = 4;
+	F3_SysInfoAck = 5;
+	F3_SdInfoReq = 6;
+	F3_SdInfoAck = 7;
+}
+
+message InitReqMessage {
+	required uint32 epoch = 1;
+}
+
+message InitAckMessage {
+	required bool rtcStatus = 1;
+}
+
+message HeartbeatReqMessage {
+	required uint32 loopNo = 1;
+}
+
+message HeartbeatAckMessage {
+	required uint32 newLoopNo = 1;
+}
+
+message SysInfoReqMessage {
+	required int32 null = 1;
+}
+
+message SysInfoAckMessage {
+	required string programVersion = 1 [(nanopb).max_size = 32];
+	required int32 cpuVersion = 2;
+}
+
+message SdInfoReqMessage {
+	required int32 null = 1;
+}
+
+message SdInfoAckMessage {
+	required bool hasCard = 1;
+	optional bool cardUsable = 2;
+	optional uint32 capacity = 3;
+	optional uint32 freeSpace = 4;
+}
